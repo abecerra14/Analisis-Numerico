@@ -1,0 +1,1727 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interpolación Polinómica | Análisis Numérico</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #07091a;
+    --surface: #0f1629;
+    --card: #151d35;
+    --border: #1e2d4f;
+    --primary: #7c5cfc;
+    --secondary: #00d4c8;
+    --accent: #ff6b6b;
+    --gold: #ffd166;
+    --green: #06d6a0;
+    --text: #e2e8f0;
+    --muted: #8892b0;
+    --radius: 16px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; overflow-x:hidden; }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top:0; left:0; right:0; z-index:1000;
+    background: rgba(7,9,26,0.92); backdrop-filter:blur(16px);
+    border-bottom: 1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 0 2rem; height:60px;
+  }
+  .nav-brand { font-weight:800; font-size:1.1rem; color:var(--primary); letter-spacing:0.5px; }
+  .nav-links { display:flex; gap:0.3rem; flex-wrap:wrap; }
+  .nav-links a {
+    color:var(--muted); text-decoration:none; font-size:0.78rem;
+    padding:5px 10px; border-radius:8px; transition:all 0.2s;
+  }
+  .nav-links a:hover { color:var(--text); background:var(--card); }
+  .progress-bar {
+    position:fixed; top:60px; left:0; height:3px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    z-index:999; transition:width 0.1s;
+    width:0%;
+  }
+
+  /* ── SECTIONS ── */
+  section { padding: 80px 2rem 60px; max-width:1100px; margin:0 auto; }
+  section:first-of-type { padding-top: 120px; }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh; display:flex; flex-direction:column;
+    justify-content:center; align-items:center; text-align:center;
+    position:relative; padding-top:80px;
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(124,92,252,0.15) 0%, transparent 70%);
+  }
+  .hero-badge {
+    display:inline-block; background:rgba(124,92,252,0.15);
+    border:1px solid rgba(124,92,252,0.4); color:var(--primary);
+    padding:6px 18px; border-radius:100px; font-size:0.82rem;
+    letter-spacing:1px; text-transform:uppercase; margin-bottom:1.5rem;
+    animation: fadeDown 0.6s ease both;
+  }
+  .hero h1 {
+    font-size: clamp(2.2rem, 6vw, 4.5rem); font-weight:900; line-height:1.1;
+    background: linear-gradient(135deg, #fff 0%, var(--secondary) 50%, var(--primary) 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    animation: fadeDown 0.7s ease 0.1s both;
+  }
+  .hero-sub {
+    max-width:640px; margin:1.5rem auto 2.5rem; color:var(--muted);
+    font-size:1.1rem; line-height:1.7; animation: fadeDown 0.7s ease 0.2s both;
+  }
+  .btn-primary {
+    display:inline-flex; align-items:center; gap:8px;
+    background: linear-gradient(135deg, var(--primary), #9d7bff);
+    color:#fff; padding:13px 28px; border-radius:100px;
+    font-weight:700; font-size:0.95rem; text-decoration:none;
+    border:none; cursor:pointer; transition:transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 20px rgba(124,92,252,0.4);
+    animation: fadeDown 0.7s ease 0.3s both;
+  }
+  .btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(124,92,252,0.5); }
+
+  .hero-math {
+    position:absolute; pointer-events:none; overflow:hidden;
+    inset:0; z-index:-1;
+  }
+  .float-sym {
+    position:absolute; font-size:1.5rem; opacity:0.08;
+    animation: floatSym 12s ease-in-out infinite;
+    color: var(--primary);
+  }
+
+  .hero-stats {
+    display:flex; gap:3rem; margin-top:4rem; flex-wrap:wrap; justify-content:center;
+    animation: fadeDown 0.7s ease 0.4s both;
+  }
+  .stat { text-align:center; }
+  .stat-num { font-size:2.2rem; font-weight:900; color:var(--secondary); }
+  .stat-label { color:var(--muted); font-size:0.82rem; }
+
+  /* ── SECTION TITLES ── */
+  .section-tag {
+    display:inline-block; background:rgba(0,212,200,0.1);
+    border:1px solid rgba(0,212,200,0.3); color:var(--secondary);
+    padding:4px 14px; border-radius:100px; font-size:0.75rem;
+    letter-spacing:1px; text-transform:uppercase; margin-bottom:1rem;
+  }
+  h2.section-title {
+    font-size:clamp(1.6rem, 4vw, 2.6rem); font-weight:800; line-height:1.2;
+    margin-bottom:0.5rem;
+  }
+  .section-desc { color:var(--muted); max-width:600px; line-height:1.7; margin-bottom:2.5rem; }
+
+  /* ── CARDS ── */
+  .card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius); padding:1.5rem;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .card:hover { border-color:rgba(124,92,252,0.4); transform:translateY(-3px); }
+  .card h3 { font-size:1.1rem; font-weight:700; margin-bottom:0.75rem; }
+
+  .grid-2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1.5rem; }
+  .grid-3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:1.5rem; }
+
+  /* ── METHOD TABS ── */
+  .tabs { display:flex; gap:0.5rem; margin-bottom:1.5rem; flex-wrap:wrap; }
+  .tab-btn {
+    padding:8px 20px; border-radius:100px; border:1px solid var(--border);
+    background:transparent; color:var(--muted); cursor:pointer; font-size:0.9rem;
+    transition:all 0.2s; font-weight:500;
+  }
+  .tab-btn.active {
+    background: linear-gradient(135deg, var(--primary), #9d7bff);
+    color:#fff; border-color:transparent;
+    box-shadow: 0 2px 12px rgba(124,92,252,0.4);
+  }
+  .tab-content { display:none; }
+  .tab-content.active { display:block; animation:fadeIn 0.3s ease; }
+
+  /* ── CODE BLOCK ── */
+  .code-block {
+    background:#0a0e1e; border:1px solid var(--border);
+    border-radius:12px; padding:1.25rem 1.5rem;
+    font-family:'Courier New',monospace; font-size:0.83rem;
+    color:#a8d8ea; overflow-x:auto; line-height:1.7;
+  }
+  .code-block .kw { color:#c792ea; }
+  .code-block .fn { color:#82aaff; }
+  .code-block .cm { color:#546e7a; font-style:italic; }
+  .code-block .str { color:#c3e88d; }
+  .code-block .num { color:#f78c6c; }
+
+  /* ── FORMULA BOX ── */
+  .formula {
+    background:rgba(124,92,252,0.08); border:1px solid rgba(124,92,252,0.25);
+    border-radius:12px; padding:1rem 1.5rem; text-align:center;
+    font-size:1rem; color:#c8b5ff; margin:1rem 0; font-family:'Courier New',monospace;
+    letter-spacing:0.5px;
+  }
+
+  /* ── CHART CONTAINERS ── */
+  .chart-wrap {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius); padding:1.5rem;
+    margin-top:1.5rem;
+  }
+  .chart-wrap canvas { max-height:350px; }
+
+  /* ── INTERACTIVE PLAYGROUND ── */
+  #playground-canvas {
+    width:100%; height:360px; border-radius:12px;
+    border:1px solid var(--border); background:#0a0e1e;
+    cursor:crosshair; display:block;
+  }
+  .controls { display:flex; gap:1rem; align-items:center; flex-wrap:wrap; margin-bottom:1rem; }
+  .select-styled {
+    background:var(--card); border:1px solid var(--border);
+    color:var(--text); padding:8px 14px; border-radius:8px;
+    font-size:0.9rem; cursor:pointer;
+  }
+  .btn-outline {
+    padding:8px 16px; border-radius:8px; border:1px solid var(--border);
+    background:transparent; color:var(--muted); cursor:pointer;
+    font-size:0.85rem; transition:all 0.2s;
+  }
+  .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
+  .eq-display {
+    background:rgba(0,212,200,0.07); border:1px solid rgba(0,212,200,0.2);
+    border-radius:10px; padding:0.75rem 1rem; margin-top:1rem;
+    font-family:'Courier New',monospace; font-size:0.85rem; color:var(--secondary);
+    min-height:40px;
+  }
+  #point-count { color:var(--muted); font-size:0.85rem; }
+
+  /* ── RUNGE SLIDER ── */
+  input[type=range] {
+    -webkit-appearance:none; width:100%; height:6px;
+    background: var(--border); border-radius:3px; outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance:none; width:20px; height:20px;
+    border-radius:50%; background:var(--primary); cursor:pointer;
+    box-shadow:0 0 8px rgba(124,92,252,0.6);
+  }
+  .slider-wrap { display:flex; align-items:center; gap:1rem; margin:1rem 0; }
+  .slider-wrap label { color:var(--muted); font-size:0.9rem; white-space:nowrap; }
+  #runge-nodes-val { color:var(--primary); font-weight:700; min-width:28px; }
+
+  /* ── COMPARISON TABLE ── */
+  .comp-table { width:100%; border-collapse:collapse; margin-top:1.5rem; }
+  .comp-table th {
+    background:rgba(124,92,252,0.15); color:var(--primary);
+    padding:12px 16px; text-align:left; font-size:0.85rem;
+    border-bottom:2px solid rgba(124,92,252,0.3);
+  }
+  .comp-table td {
+    padding:12px 16px; border-bottom:1px solid var(--border);
+    font-size:0.88rem; transition:background 0.2s;
+  }
+  .comp-table tr:hover td { background:rgba(124,92,252,0.06); }
+  .badge {
+    display:inline-block; padding:3px 10px; border-radius:100px;
+    font-size:0.75rem; font-weight:600;
+  }
+  .badge-green { background:rgba(6,214,160,0.15); color:var(--green); }
+  .badge-yellow { background:rgba(255,209,102,0.15); color:var(--gold); }
+  .badge-red { background:rgba(255,107,107,0.15); color:var(--accent); }
+  .badge-blue { background:rgba(0,212,200,0.15); color:var(--secondary); }
+
+  /* ── WHY SECTION ── */
+  .method-compare-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius); overflow:hidden;
+    transition: border-color 0.3s;
+  }
+  .method-compare-card:hover { border-color:rgba(0,212,200,0.4); }
+  .mcc-header {
+    padding:1rem 1.5rem; display:flex; align-items:center; gap:0.75rem;
+    cursor:pointer; user-select:none;
+  }
+  .mcc-icon { font-size:1.5rem; }
+  .mcc-title { font-weight:700; font-size:1rem; flex:1; }
+  .mcc-tag { font-size:0.72rem; }
+  .mcc-arrow { color:var(--muted); transition:transform 0.3s; }
+  .mcc-body { padding:0 1.5rem 1.5rem; display:none; }
+  .mcc-body.open { display:block; animation:fadeIn 0.25s ease; }
+  .vs-row { display:flex; gap:1rem; margin-top:0.75rem; flex-wrap:wrap; }
+  .vs-col { flex:1; min-width:160px; }
+  .vs-col h4 { font-size:0.8rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.4rem; }
+  .vs-col p { font-size:0.88rem; line-height:1.6; }
+
+  /* ── QUIZ ── */
+  .quiz-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius); padding:1.5rem; margin-bottom:1rem;
+  }
+  .quiz-q { font-weight:600; margin-bottom:1rem; }
+  .quiz-opts { display:flex; flex-direction:column; gap:0.6rem; }
+  .quiz-opt {
+    padding:10px 14px; border-radius:10px; border:1px solid var(--border);
+    background:transparent; color:var(--text); cursor:pointer; text-align:left;
+    font-size:0.9rem; transition:all 0.2s;
+  }
+  .quiz-opt:hover:not(:disabled) { border-color:var(--primary); color:var(--primary); }
+  .quiz-opt.correct { background:rgba(6,214,160,0.15); border-color:var(--green); color:var(--green); }
+  .quiz-opt.wrong { background:rgba(255,107,107,0.15); border-color:var(--accent); color:var(--accent); }
+  .quiz-feedback { margin-top:0.75rem; font-size:0.88rem; color:var(--muted); display:none; }
+
+  /* ── TIMELINE ── */
+  .timeline { position:relative; padding-left:2rem; }
+  .timeline::before {
+    content:''; position:absolute; left:8px; top:0; bottom:0;
+    width:2px; background:linear-gradient(180deg, var(--primary), var(--secondary));
+    border-radius:2px;
+  }
+  .tl-item { position:relative; margin-bottom:2rem; }
+  .tl-dot {
+    position:absolute; left:-2rem; top:4px;
+    width:16px; height:16px; border-radius:50%;
+    background:var(--primary); border:2px solid var(--bg);
+    box-shadow:0 0 10px rgba(124,92,252,0.6);
+  }
+  .tl-item h4 { font-weight:700; margin-bottom:0.4rem; color:var(--secondary); }
+  .tl-item p { color:var(--muted); font-size:0.9rem; line-height:1.6; }
+
+  /* ── TEMPERATURE ESTIMATOR ── */
+  .temp-estimator {
+    background:rgba(0,212,200,0.06); border:1px solid rgba(0,212,200,0.2);
+    border-radius:12px; padding:1rem 1.5rem; margin-top:1rem;
+    display:flex; align-items:center; gap:1.5rem; flex-wrap:wrap;
+  }
+  .temp-display {
+    font-size:2.5rem; font-weight:900; color:var(--secondary);
+    font-variant-numeric:tabular-nums;
+  }
+  .temp-label { color:var(--muted); font-size:0.85rem; }
+
+  /* ── CONCLUSIONS ── */
+  .conclusion-item {
+    display:flex; gap:1rem; padding:1rem 0;
+    border-bottom:1px solid var(--border);
+  }
+  .conclusion-item:last-child { border-bottom:none; }
+  .conc-num {
+    width:32px; height:32px; border-radius:50%;
+    background:linear-gradient(135deg, var(--primary), var(--secondary));
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:0.85rem; flex-shrink:0;
+  }
+  .conc-text { font-size:0.95rem; line-height:1.65; padding-top:4px; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeDown {
+    from { opacity:0; transform:translateY(-20px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity:0; }
+    to   { opacity:1; }
+  }
+  @keyframes floatSym {
+    0%,100% { transform:translateY(0) rotate(0deg); }
+    50%     { transform:translateY(-20px) rotate(10deg); }
+  }
+  .fade-up {
+    opacity:0; transform:translateY(30px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .fade-up.visible { opacity:1; transform:translateY(0); }
+
+  /* ── SCROLLSPY ACTIVE ── */
+  nav a.active { color:var(--secondary) !important; }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align:center; padding:3rem 2rem 2rem;
+    color:var(--muted); font-size:0.85rem;
+    border-top:1px solid var(--border);
+  }
+  footer span { color:var(--primary); }
+
+  /* ── TOOLTIP ── */
+  .tip { position:relative; cursor:help; color:var(--secondary); }
+  .tip::after {
+    content:attr(data-tip);
+    position:absolute; bottom:120%; left:50%; transform:translateX(-50%);
+    background:#1a2540; border:1px solid var(--border);
+    color:var(--text); padding:6px 12px; border-radius:8px;
+    font-size:0.8rem; white-space:nowrap; pointer-events:none;
+    opacity:0; transition:opacity 0.2s; z-index:100;
+  }
+  .tip:hover::after { opacity:1; }
+
+  /* ── RESPONSIVE ── */
+  @media(max-width:640px){
+    nav { padding:0 1rem; }
+    .nav-links { display:none; }
+    section { padding:60px 1rem 40px; }
+  }
+
+  /* ── HIGHLIGHT ── */
+  .highlight { color:var(--secondary); font-weight:700; }
+  .highlight-p { color:var(--primary); font-weight:700; }
+
+  /* ── INFO BOX ── */
+  .info-box {
+    background:rgba(0,212,200,0.07); border-left:3px solid var(--secondary);
+    border-radius:0 10px 10px 0; padding:1rem 1.25rem; margin:1rem 0;
+    font-size:0.9rem; line-height:1.65;
+  }
+  .warn-box {
+    background:rgba(255,209,102,0.07); border-left:3px solid var(--gold);
+    border-radius:0 10px 10px 0; padding:1rem 1.25rem; margin:1rem 0;
+    font-size:0.9rem; line-height:1.65; color:#f0d070;
+  }
+</style>
+</head>
+<body>
+
+<!-- ─────────────── NAV ─────────────── -->
+<nav>
+  <div class="nav-brand">📐 Interpolación Polinómica</div>
+  <div class="nav-links">
+    <a href="#intro">Intro</a>
+    <a href="#teoria">Teoría</a>
+    <a href="#metodos">Métodos</a>
+    <a href="#playground">Demo</a>
+    <a href="#caso">Caso Práctico</a>
+    <a href="#runge">Runge</a>
+    <a href="#comparativa">Comparativa</a>
+    <a href="#por-que">¿Por qué?</a>
+    <a href="#conclusiones">Conclusiones</a>
+  </div>
+</nav>
+<div class="progress-bar" id="progress"></div>
+
+<!-- ─────────────── HERO ─────────────── -->
+<section class="hero" id="hero">
+  <div class="hero-math">
+    <span class="float-sym" style="top:15%;left:8%;animation-delay:0s">P(x)</span>
+    <span class="float-sym" style="top:25%;left:88%;animation-delay:2s">Σ</span>
+    <span class="float-sym" style="top:60%;left:5%;animation-delay:4s">∫</span>
+    <span class="float-sym" style="top:75%;left:90%;animation-delay:1s">Π</span>
+    <span class="float-sym" style="top:40%;left:93%;animation-delay:3s">yᵢ·Lᵢ</span>
+    <span class="float-sym" style="top:80%;left:12%;animation-delay:5s">f[x₀,x₁]</span>
+    <span class="float-sym" style="top:10%;left:50%;animation-delay:2.5s">xⁿ</span>
+  </div>
+
+  <div class="hero-badge">Análisis Numérico • 2026</div>
+  <h1>Interpolación<br>Polinómica</h1>
+  <p class="hero-sub">Fundamentos teóricos, implementación computacional y análisis comparativo de los métodos de Vandermonde, Lagrange y Newton aplicados a la reconstrucción de datos.</p>
+  <a href="#intro" class="btn-primary">Explorar presentación →</a>
+
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num">3</div><div class="stat-label">Métodos estudiados</div></div>
+    <div class="stat"><div class="stat-num">O(n²)</div><div class="stat-label">Complejidad óptima</div></div>
+    <div class="stat"><div class="stat-num">1</div><div class="stat-label">Polinomio único</div></div>
+    <div class="stat"><div class="stat-num">∞</div><div class="stat-label">Aplicaciones</div></div>
+  </div>
+</section>
+
+<!-- ─────────────── INTRO ─────────────── -->
+<section id="intro" class="fade-up">
+  <div class="section-tag">01 · Introducción</div>
+  <h2 class="section-title">¿Qué es la interpolación polinómica?</h2>
+  <p class="section-desc">Cuando solo tienes puntos discretos y necesitas la función continua que los une, la interpolación polinómica es tu respuesta.</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>🎯 El problema</h3>
+      <p style="color:var(--muted);line-height:1.7;">En ingeniería de sistemas es común tener <span class="highlight">datos muestrales</span> —mediciones de sensores, registros de bases de datos, valores tabulados— y necesitar estimar valores intermedios que no fueron medidos.</p>
+      <div class="formula" style="margin-top:1rem;">¿Cómo estimar f(x*) dado {(x₀,y₀), ..., (xₙ,yₙ)}?</div>
+    </div>
+    <div class="card">
+      <h3>✅ La solución</h3>
+      <p style="color:var(--muted);line-height:1.7;">La interpolación polinómica garantiza la existencia y unicidad de un <span class="highlight">polinomio P(x) de grado ≤ n</span> que pasa exactamente por todos los n+1 puntos dados.</p>
+      <div class="formula" style="margin-top:1rem;">P(xᵢ) = yᵢ para todo i = 0, 1, ..., n</div>
+    </div>
+  </div>
+
+  <div style="margin-top:2rem;">
+    <h3 style="margin-bottom:1.2rem;">🚀 Aplicaciones en Ingeniería de Sistemas</h3>
+    <div class="grid-3">
+      <div class="card" style="text-align:center;">
+        <div style="font-size:2rem;margin-bottom:0.5rem;">🎨</div>
+        <h3>Gráficos</h3>
+        <p style="color:var(--muted);font-size:0.88rem;">Trazado de curvas y superficies a partir de puntos de control</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:2rem;margin-bottom:0.5rem;">📡</div>
+        <h3>Señales Digitales</h3>
+        <p style="color:var(--muted);font-size:0.88rem;">Reconstrucción de señales muestreadas</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:2rem;margin-bottom:0.5rem;">🤖</div>
+        <h3>Machine Learning</h3>
+        <p style="color:var(--muted);font-size:0.88rem;">Generación de funciones base y suavizado de datos</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:2rem;margin-bottom:0.5rem;">🗄️</div>
+        <h3>Big Data</h3>
+        <p style="color:var(--muted);font-size:0.88rem;">Estimación de valores faltantes en series temporales</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:2rem;margin-bottom:0.5rem;">🔬</div>
+        <h3>Simulación</h3>
+        <p style="color:var(--muted);font-size:0.88rem;">Integración y derivación de funciones tabuladas</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:2rem;margin-bottom:0.5rem;">📊</div>
+        <h3>Análisis de datos</h3>
+        <p style="color:var(--muted);font-size:0.88rem;">Interpolación de mediciones experimentales</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────── TEORÍA ─────────────── -->
+<section id="teoria" class="fade-up">
+  <div class="section-tag">02 · Marco Teórico</div>
+  <h2 class="section-title">Fundamentos Matemáticos</h2>
+  <p class="section-desc">La base rigurosa que sustenta los tres métodos de construcción del polinomio interpolante.</p>
+
+  <div style="margin-bottom:2rem;">
+    <h3 style="margin-bottom:1rem; color:var(--secondary);">📐 Definición Formal</h3>
+    <p style="color:var(--muted);line-height:1.7;margin-bottom:1rem;">
+      Dado un conjunto de <span class="highlight">n+1 puntos distintos</span> {(x₀,y₀), (x₁,y₁), ..., (xₙ,yₙ)} con xᵢ ≠ xⱼ para i ≠ j, el problema consiste en encontrar un polinomio P(x) de grado a lo sumo n tal que:
+    </p>
+    <div class="formula">P(xᵢ) = yᵢ,   para todo i = 0, 1, 2, ..., n</div>
+  </div>
+
+  <div style="margin-bottom:2rem;">
+    <h3 style="margin-bottom:1rem; color:var(--secondary);">🔒 Teorema de Existencia y Unicidad</h3>
+    <div class="info-box">
+      <strong>Teorema:</strong> Dados n+1 puntos con abscisas distintas, existe un <em>único</em> polinomio P(x) de grado ≤ n que interpola dichos puntos.
+    </div>
+    <p style="color:var(--muted);line-height:1.7;font-size:0.95rem;">
+      <strong>Demostración de unicidad:</strong> Si P(x) y Q(x), ambos de grado ≤ n, interpolan los mismos n+1 puntos, entonces D(x) = P(x) − Q(x) tiene grado ≤ n y posee n+1 raíces. Esto solo es posible si <span class="highlight">D(x) ≡ 0</span>, es decir, P(x) = Q(x). □
+    </p>
+    <div class="warn-box">
+      <strong>⚠️ Implicación práctica:</strong> Los tres métodos (Vandermonde, Lagrange, Newton) producen <em>exactamente el mismo polinomio</em>. Las diferencias están en la eficiencia computacional, no en el resultado.
+    </div>
+  </div>
+
+  <div>
+    <h3 style="margin-bottom:1rem; color:var(--secondary);">📏 Error de Interpolación</h3>
+    <p style="color:var(--muted);line-height:1.7;margin-bottom:0.75rem;">Si f(x) es n+1 veces derivable en [a,b], el error de interpolación está acotado por:</p>
+    <div class="formula">E(x) = f⁽ⁿ⁺¹⁾(ξ) / (n+1)! · (x−x₀)(x−x₁)···(x−xₙ)</div>
+    <p style="color:var(--muted);font-size:0.88rem;line-height:1.6;margin-top:0.75rem;">
+      El error depende de: la derivada (n+1)-ésima de la función, y la distancia del punto evaluado a cada nodo.
+    </p>
+  </div>
+</section>
+
+<!-- ─────────────── MÉTODOS ─────────────── -->
+<section id="metodos" class="fade-up">
+  <div class="section-tag">03 · Los Tres Métodos</div>
+  <h2 class="section-title">Vandermonde · Lagrange · Newton</h2>
+  <p class="section-desc">Tres formas de construir el mismo polinomio único, con ventajas y desventajas distintas.</p>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('vandermonde',this)">🔷 Vandermonde</button>
+    <button class="tab-btn" onclick="switchTab('lagrange',this)">🔶 Lagrange</button>
+    <button class="tab-btn" onclick="switchTab('newton',this)">🟢 Newton</button>
+  </div>
+
+  <!-- VANDERMONDE TAB -->
+  <div class="tab-content active" id="tab-vandermonde">
+    <div class="grid-2">
+      <div>
+        <h3 style="color:#82aaff;margin-bottom:1rem;">Método de Vandermonde</h3>
+        <p style="color:var(--muted);line-height:1.7;margin-bottom:1rem;">
+          El enfoque más directo: escribir el polinomio en forma canónica e imponer las condiciones de interpolación para obtener un <span class="highlight">sistema lineal</span>.
+        </p>
+        <div class="formula">P(x) = a₀ + a₁x + a₂x² + ··· + aₙxⁿ</div>
+        <div class="formula">V · a = y</div>
+        <div style="margin-top:1rem;display:flex;gap:0.75rem;flex-wrap:wrap;">
+          <span class="badge badge-yellow">O(n³) complejidad</span>
+          <span class="badge badge-red">Baja estabilidad</span>
+          <span class="badge badge-red">No incremental</span>
+        </div>
+        <div class="warn-box" style="margin-top:1rem;">
+          La matriz de Vandermonde puede estar <strong>mal condicionada</strong> para n grande, causando errores numéricos significativos.
+        </div>
+      </div>
+      <div>
+        <div class="code-block">
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> <span class="fn">interp_vandermonde</span>(x, y, x_eval):
+    n = <span class="fn">len</span>(x)
+    <span class="cm"># Construye la matriz de Vandermonde</span>
+    V = np.<span class="fn">vander</span>(x, increasing=<span class="kw">True</span>)
+    <span class="cm"># Resuelve el sistema V·a = y</span>
+    coef = np.linalg.<span class="fn">solve</span>(V, y)
+    <span class="cm"># Evalúa el polinomio</span>
+    <span class="kw">return</span> <span class="fn">sum</span>(coef[i] * x_eval**i
+                <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(n))
+        </div>
+        <div class="chart-wrap" style="margin-top:1rem;padding:1rem;">
+          <h4 style="font-size:0.85rem;color:var(--muted);margin-bottom:0.5rem;">Estructura de la Matriz de Vandermonde (n=4)</h4>
+          <div style="overflow-x:auto;">
+            <table style="width:100%;text-align:center;font-family:monospace;font-size:0.9rem;border-collapse:collapse;">
+              <tr style="color:var(--secondary);">
+                <td style="padding:6px 8px;border:1px solid var(--border);">1</td>
+                <td style="padding:6px 8px;border:1px solid var(--border);">x₀</td>
+                <td style="padding:6px 8px;border:1px solid var(--border);">x₀²</td>
+                <td style="padding:6px 8px;border:1px solid var(--border);">x₀³</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 8px;border:1px solid var(--border);">1</td>
+                <td style="padding:6px 8px;border:1px solid var(--border);">x₁</td>
+                <td style="padding:6px 8px;border:1px solid var(--border);">x₁²</td>
+                <td style="padding:6px 8px;border:1px solid var(--border);">x₁³</td>
+              </tr>
+              <tr style="color:var(--primary);">
+                <td style="padding:6px 8px;border:1px solid var(--border);">1</td>
+                <td style="padding:6px 8px;border:1px solid var(--border);">x₂</td>
+                <td style="padding:6px 8px;border:1px solid var(--border);">x₂²</td>
+                <td style="padding:6px 8px;border:1px solid var(--border);">x₂³</td>
+              </tr>
+              <tr style="color:var(--accent);">
+                <td style="padding:6px 8px;border:1px solid var(--border);">1</td>
+                <td style="padding:6px 8px;border:1px solid var(--border);">x₃</td>
+                <td style="padding:6px 8px;border:1px solid var(--border);">x₃²</td>
+                <td style="padding:6px 8px;border:1px solid var(--border);">x₃³</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LAGRANGE TAB -->
+  <div class="tab-content" id="tab-lagrange">
+    <div class="grid-2">
+      <div>
+        <h3 style="color:#ffcb6b;margin-bottom:1rem;">Método de Lagrange</h3>
+        <p style="color:var(--muted);line-height:1.7;margin-bottom:1rem;">
+          Construye el polinomio directamente como combinación lineal de <span class="highlight">polinomios base Lᵢ(x)</span>, sin necesidad de resolver un sistema lineal.
+        </p>
+        <div class="formula">P(x) = Σ yᵢ · Lᵢ(x)</div>
+        <div class="formula">Lᵢ(x) = Π (x−xⱼ)/(xᵢ−xⱼ),  j≠i</div>
+        <p style="color:var(--muted);font-size:0.88rem;line-height:1.6;margin:0.75rem 0;">
+          Cada Lᵢ(x) vale <span class="highlight">1</span> en el nodo xᵢ y <span class="highlight-p">0</span> en los demás nodos.
+        </p>
+        <div style="margin-top:1rem;display:flex;gap:0.75rem;flex-wrap:wrap;">
+          <span class="badge badge-yellow">O(n²) complejidad</span>
+          <span class="badge badge-yellow">Estabilidad media</span>
+          <span class="badge badge-red">No incremental</span>
+        </div>
+        <div class="info-box" style="margin-top:1rem;">
+          Al agregar un nuevo punto, hay que <strong>recalcular todos</strong> los polinomios Lᵢ(x) desde cero.
+        </div>
+      </div>
+      <div>
+        <div class="code-block">
+<span class="kw">def</span> <span class="fn">interp_lagrange</span>(x, y, x_eval):
+    n = <span class="fn">len</span>(x)
+    resultado = <span class="num">0.0</span>
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(n):
+        L = <span class="num">1.0</span>
+        <span class="kw">for</span> j <span class="kw">in</span> <span class="fn">range</span>(n):
+            <span class="kw">if</span> i != j:
+                L *= ((x_eval - x[j])
+                    / (x[i] - x[j]))
+        resultado += y[i] * L
+    <span class="kw">return</span> resultado
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-top:1rem;">
+          <h4 style="font-size:0.85rem;color:var(--muted);margin-bottom:0.75rem;">Propiedad de los polinomios base</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:0.85rem;text-align:center;">
+            <div style="background:rgba(6,214,160,0.1);border-radius:8px;padding:8px;">
+              <span style="color:var(--green);">Lᵢ(xᵢ) = 1</span><br>
+              <span style="color:var(--muted);font-size:0.75rem;">En su propio nodo</span>
+            </div>
+            <div style="background:rgba(255,107,107,0.1);border-radius:8px;padding:8px;">
+              <span style="color:var(--accent);">Lᵢ(xⱼ) = 0</span><br>
+              <span style="color:var(--muted);font-size:0.75rem;">En los demás nodos</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEWTON TAB -->
+  <div class="tab-content" id="tab-newton">
+    <div class="grid-2">
+      <div>
+        <h3 style="color:var(--green);margin-bottom:1rem;">Método de Newton (Diferencias Divididas)</h3>
+        <p style="color:var(--muted);line-height:1.7;margin-bottom:1rem;">
+          Construye el polinomio de manera <span class="highlight">incremental</span> usando diferencias divididas. Al agregar un nuevo punto, solo se calcula un nuevo término.
+        </p>
+        <div class="formula">P(x) = f[x₀] + f[x₀,x₁](x−x₀) + f[x₀,x₁,x₂](x−x₀)(x−x₁) + ···</div>
+        <p style="color:var(--muted);font-size:0.88rem;line-height:1.6;margin:0.75rem 0;">
+          Las diferencias divididas se calculan recursivamente: <br>
+          f[xᵢ,...,xᵢ₊ₖ] = (f[xᵢ₊₁,...,xᵢ₊ₖ] − f[xᵢ,...,xᵢ₊ₖ₋₁]) / (xᵢ₊ₖ − xᵢ)
+        </p>
+        <div style="margin-top:1rem;display:flex;gap:0.75rem;flex-wrap:wrap;">
+          <span class="badge badge-green">O(n²) complejidad</span>
+          <span class="badge badge-green">Alta estabilidad</span>
+          <span class="badge badge-blue">✓ Incremental</span>
+        </div>
+        <div class="info-box" style="margin-top:1rem; background:rgba(6,214,160,0.07); border-color:var(--green);">
+          <strong>⭐ Recomendado:</strong> Al agregar un nuevo punto, solo se calcula un nuevo término. Ideal cuando los datos llegan progresivamente.
+        </div>
+      </div>
+      <div>
+        <div class="code-block">
+<span class="kw">def</span> <span class="fn">dif_divididas</span>(x, y):
+    n = <span class="fn">len</span>(x)
+    tabla = np.<span class="fn">copy</span>(y).<span class="fn">astype</span>(<span class="fn">float</span>)
+    <span class="kw">for</span> j <span class="kw">in</span> <span class="fn">range</span>(<span class="num">1</span>, n):
+        <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(n-<span class="num">1</span>, j-<span class="num">1</span>, -<span class="num">1</span>):
+            tabla[i] = ((tabla[i] - tabla[i-<span class="num">1</span>])
+                / (x[i] - x[i-j]))
+    <span class="kw">return</span> tabla
+
+<span class="kw">def</span> <span class="fn">interp_newton</span>(x, y, x_eval):
+    coef = <span class="fn">dif_divididas</span>(x, y)
+    n = <span class="fn">len</span>(x)
+    resultado = coef[n-<span class="num">1</span>]
+    <span class="cm"># Evaluación eficiente (Horner)</span>
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(n-<span class="num">2</span>, -<span class="num">1</span>, -<span class="num">1</span>):
+        resultado = (resultado * (x_eval - x[i])
+                     + coef[i])
+    <span class="kw">return</span> resultado
+        </div>
+        <div class="chart-wrap" style="margin-top:1rem;padding:1rem;">
+          <h4 style="font-size:0.85rem;color:var(--muted);margin-bottom:0.5rem;">Tabla de diferencias divididas (ejemplo)</h4>
+          <table style="width:100%;text-align:center;font-family:monospace;font-size:0.82rem;border-collapse:collapse;">
+            <tr style="color:var(--muted);font-size:0.75rem;">
+              <td style="padding:5px;border:1px solid var(--border);">xᵢ</td>
+              <td style="padding:5px;border:1px solid var(--border);">f[xᵢ]</td>
+              <td style="padding:5px;border:1px solid var(--border);">f[xᵢ,xᵢ₊₁]</td>
+              <td style="padding:5px;border:1px solid var(--border);">f[xᵢ,xᵢ₊₁,xᵢ₊₂]</td>
+            </tr>
+            <tr><td style="padding:5px;border:1px solid var(--border);color:var(--secondary);">x₀</td><td style="padding:5px;border:1px solid var(--border);">f[x₀]</td><td style="border:1px solid var(--border);"></td><td style="border:1px solid var(--border);"></td></tr>
+            <tr><td style="padding:5px;border:1px solid var(--border);color:var(--secondary);">x₁</td><td style="padding:5px;border:1px solid var(--border);">f[x₁]</td><td style="padding:5px;border:1px solid var(--border);color:var(--primary);">f[x₀,x₁]</td><td style="border:1px solid var(--border);"></td></tr>
+            <tr><td style="padding:5px;border:1px solid var(--border);color:var(--secondary);">x₂</td><td style="padding:5px;border:1px solid var(--border);">f[x₂]</td><td style="padding:5px;border:1px solid var(--border);color:var(--primary);">f[x₁,x₂]</td><td style="padding:5px;border:1px solid var(--border);color:var(--accent);">f[x₀,x₁,x₂]</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────── PLAYGROUND ─────────────── -->
+<section id="playground" class="fade-up">
+  <div class="section-tag">04 · Demo Interactivo</div>
+  <h2 class="section-title">Laboratorio de Interpolación 🧪</h2>
+  <p class="section-desc">¡Haz clic en el lienzo para agregar puntos y observa en tiempo real cómo se construye el polinomio interpolante!</p>
+
+  <div class="controls">
+    <label style="color:var(--muted);font-size:0.9rem;">Método:</label>
+    <select class="select-styled" id="method-select" onchange="redraw()">
+      <option value="lagrange">Lagrange</option>
+      <option value="newton">Newton</option>
+    </select>
+    <button class="btn-outline" onclick="clearPlayground()">🗑️ Limpiar</button>
+    <button class="btn-outline" onclick="addPreset()">📌 Cargar ejemplo</button>
+    <span id="point-count">0 puntos</span>
+  </div>
+
+  <canvas id="playground-canvas"></canvas>
+  <div class="eq-display" id="eq-display">Agrega al menos 2 puntos para ver el polinomio interpolante</div>
+
+  <div style="margin-top:0.75rem;display:flex;gap:1rem;flex-wrap:wrap;font-size:0.82rem;color:var(--muted);">
+    <span>🖱️ Clic izquierdo: agregar punto</span>
+    <span>🖱️ Clic derecho: eliminar punto más cercano</span>
+  </div>
+</section>
+
+<!-- ─────────────── CASO PRÁCTICO ─────────────── -->
+<section id="caso" class="fade-up">
+  <div class="section-tag">05 · Caso Práctico</div>
+  <h2 class="section-title">Reconstrucción de Temperatura 🌡️</h2>
+  <p class="section-desc">7 mediciones de temperatura a lo largo del día. Construimos un polinomio de grado 6 para estimar cualquier hora.</p>
+
+  <div class="grid-2" style="margin-bottom:1.5rem;">
+    <div class="card">
+      <h3>📋 Datos del sensor</h3>
+      <table style="width:100%;border-collapse:collapse;margin-top:0.5rem;font-size:0.9rem;">
+        <tr style="color:var(--muted);font-size:0.8rem;">
+          <th style="text-align:left;padding:6px 0;">Hora</th>
+          <th style="text-align:left;padding:6px 0;">Temp. (°C)</th>
+        </tr>
+        <tr><td style="padding:5px 0;">0:00 hs</td><td style="color:var(--secondary);">14.2°C</td></tr>
+        <tr><td style="padding:5px 0;">4:00 hs</td><td style="color:var(--secondary);">12.5°C</td></tr>
+        <tr><td style="padding:5px 0;">8:00 hs</td><td style="color:var(--secondary);">18.3°C</td></tr>
+        <tr><td style="padding:5px 0;">12:00 hs</td><td style="color:var(--secondary);">24.7°C</td></tr>
+        <tr><td style="padding:5px 0;">16:00 hs</td><td style="color:var(--secondary);">26.1°C</td></tr>
+        <tr><td style="padding:5px 0;">20:00 hs</td><td style="color:var(--secondary);">20.4°C</td></tr>
+        <tr><td style="padding:5px 0;">24:00 hs</td><td style="color:var(--secondary);">15.0°C</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3>🔍 Estimar temperatura</h3>
+      <p style="color:var(--muted);font-size:0.88rem;margin-bottom:1rem;">Arrastra el slider para consultar cualquier hora del día:</p>
+      <div class="slider-wrap">
+        <label>Hora:</label>
+        <input type="range" id="hour-slider" min="0" max="24" step="0.5" value="10" oninput="updateTempEstimate()">
+        <span id="hour-val" style="color:var(--primary);font-weight:700;min-width:40px;">10:00</span>
+      </div>
+      <div class="temp-estimator">
+        <div>
+          <div class="temp-display" id="temp-result">21.4°C</div>
+          <div class="temp-label">Temperatura estimada</div>
+        </div>
+        <div style="font-size:0.82rem;color:var(--muted);">
+          Método: Lagrange<br>
+          Grado: 6<br>
+          Nodos: 7 puntos
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-wrap">
+    <canvas id="temp-chart" height="280"></canvas>
+  </div>
+</section>
+
+<!-- ─────────────── RUNGE ─────────────── -->
+<section id="runge" class="fade-up">
+  <div class="section-tag">06 · Fenómeno de Runge</div>
+  <h2 class="section-title">El Peligro del Grado Alto ⚡</h2>
+  <p class="section-desc">Más nodos no siempre significa mejor aproximación. Para nodos equiespaciados, el polinomio puede oscilar violentamente.</p>
+
+  <div class="warn-box" style="margin-bottom:1.5rem;">
+    <strong>🎯 Función clásica de Runge:</strong> f(x) = 1 / (1 + 25x²) en [−1, 1]<br>
+    Con nodos equiespaciados, el polinomio exhibe oscilaciones crecientes cerca de los extremos del intervalo.
+  </div>
+
+  <div class="card" style="margin-bottom:1.5rem;">
+    <div class="slider-wrap">
+      <label>Nodos equiespaciados:</label>
+      <input type="range" id="runge-slider" min="3" max="20" step="1" value="7" oninput="updateRungeChart()">
+      <span id="runge-nodes-val">7</span>
+    </div>
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.5rem;font-size:0.85rem;">
+      <span style="color:var(--secondary);">— Función real f(x)</span>
+      <span style="color:var(--accent);">— Polinomio interpolante</span>
+      <span id="runge-status" style="color:var(--muted);"></span>
+    </div>
+  </div>
+
+  <div class="chart-wrap">
+    <canvas id="runge-chart" height="300"></canvas>
+  </div>
+
+  <div class="grid-2" style="margin-top:1.5rem;">
+    <div class="card">
+      <h3>❌ Problema</h3>
+      <p style="color:var(--muted);line-height:1.7;font-size:0.9rem;">Con nodos equiespaciados y grados elevados (n > 10), el error en los extremos del intervalo crece de forma descontrolada.</p>
+    </div>
+    <div class="card">
+      <h3>✅ Soluciones</h3>
+      <div style="color:var(--muted);font-size:0.9rem;line-height:1.7;">
+        <div>🔵 <strong>Nodos de Chebyshev:</strong> redistribuyen puntos hacia los extremos</div>
+        <div style="margin-top:0.5rem;">🟢 <strong>Splines cúbicos:</strong> polinomios de bajo grado por tramos, estables y suaves</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────── COMPARATIVA ─────────────── -->
+<section id="comparativa" class="fade-up">
+  <div class="section-tag">07 · Comparativa de Métodos</div>
+  <h2 class="section-title">¿Cuál Método Elegir?</h2>
+  <p class="section-desc">Los tres métodos producen el mismo polinomio, pero difieren en eficiencia, estabilidad y flexibilidad.</p>
+
+  <div class="chart-wrap" style="margin-bottom:1.5rem;">
+    <canvas id="compare-chart" height="220"></canvas>
+  </div>
+
+  <table class="comp-table">
+    <thead>
+      <tr>
+        <th>Método</th>
+        <th>Complejidad</th>
+        <th>Estabilidad numérica</th>
+        <th>Incremental</th>
+        <th>Recomendado para</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>🔷 Vandermonde</strong></td>
+        <td><span class="badge badge-red">O(n³)</span></td>
+        <td><span class="badge badge-red">Baja</span></td>
+        <td><span class="badge badge-red">No</span></td>
+        <td style="color:var(--muted);font-size:0.85rem;">Pocas variables, comprensión didáctica</td>
+      </tr>
+      <tr>
+        <td><strong>🔶 Lagrange</strong></td>
+        <td><span class="badge badge-yellow">O(n²)</span></td>
+        <td><span class="badge badge-yellow">Media</span></td>
+        <td><span class="badge badge-red">No</span></td>
+        <td style="color:var(--muted);font-size:0.85rem;">Demostraciones teóricas, datos fijos</td>
+      </tr>
+      <tr>
+        <td><strong>🟢 Newton</strong></td>
+        <td><span class="badge badge-green">O(n²)</span></td>
+        <td><span class="badge badge-green">Alta</span></td>
+        <td><span class="badge badge-blue">✓ Sí</span></td>
+        <td style="color:var(--muted);font-size:0.85rem;"><strong>Producción, datos dinámicos</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="chart-wrap" style="margin-top:1.5rem;">
+    <canvas id="radar-chart" height="300"></canvas>
+  </div>
+</section>
+
+<!-- ─────────────── ¿POR QUÉ? ─────────────── -->
+<section id="por-que" class="fade-up">
+  <div class="section-tag">08 · ¿Por qué este método?</div>
+  <h2 class="section-title">Interpolación vs. Otros Métodos Numéricos</h2>
+  <p class="section-desc">La interpolación polinómica resuelve un tipo de problema diferente a los otros métodos del curso. Entender cuándo usar cada uno es la habilidad clave del ingeniero.</p>
+
+  <div class="info-box" style="margin-bottom:2rem;">
+    <strong>💡 Principio fundamental:</strong> No existe "el mejor método" en general. Existe el método correcto para cada tipo de problema. La interpolación no compite con bisección ni con Gauss — resuelven preguntas distintas.
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+
+    <!-- BISECCIÓN -->
+    <div class="method-compare-card">
+      <div class="mcc-header" onclick="toggleMcc(this)">
+        <span class="mcc-icon">📐</span>
+        <span class="mcc-title">Método de Bisección</span>
+        <span class="badge badge-red mcc-tag">Búsqueda de raíces</span>
+        <span class="mcc-arrow">▼</span>
+      </div>
+      <div class="mcc-body">
+        <div class="vs-row">
+          <div class="vs-col">
+            <h4>¿Qué resuelve?</h4>
+            <p style="color:var(--muted);">Encontrar x donde f(x) = 0. Divide el intervalo [a,b] a la mitad repetidamente hasta converger a la raíz.</p>
+          </div>
+          <div class="vs-col">
+            <h4>¿Cuándo usar bisección?</h4>
+            <p style="color:var(--muted);">Cuando necesitas encontrar el <strong>cero</strong> de una función continua. Garantiza convergencia si f(a)·f(b) < 0.</p>
+          </div>
+          <div class="vs-col">
+            <h4>¿Por qué interpolación aquí?</h4>
+            <p style="color:var(--muted);">En el proyecto, el problema es <strong>reconstruir</strong> f(x) a partir de datos discretos, no encontrar sus raíces. Son preguntas distintas.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEWTON-RAPHSON -->
+    <div class="method-compare-card">
+      <div class="mcc-header" onclick="toggleMcc(this)">
+        <span class="mcc-icon">🔁</span>
+        <span class="mcc-title">Método de Newton-Raphson</span>
+        <span class="badge badge-red mcc-tag">Búsqueda de raíces</span>
+        <span class="mcc-arrow">▼</span>
+      </div>
+      <div class="mcc-body">
+        <div class="vs-row">
+          <div class="vs-col">
+            <h4>¿Qué resuelve?</h4>
+            <p style="color:var(--muted);">Raíces de ecuaciones no lineales usando la tangente. Convergencia cuadrática muy rápida cerca de la raíz.</p>
+          </div>
+          <div class="vs-col">
+            <h4>Ventajas</h4>
+            <p style="color:var(--muted);">Convergencia muy rápida (cuadrática). Pero requiere conocer f'(x), puede divergir si la inicial es mala.</p>
+          </div>
+          <div class="vs-col">
+            <h4>Diferencia clave</h4>
+            <p style="color:var(--muted);">Newton-Raphson necesita una expresión analítica de f(x). La interpolación funciona con <strong>solo los datos</strong>, sin conocer la función.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECANTE -->
+    <div class="method-compare-card">
+      <div class="mcc-header" onclick="toggleMcc(this)">
+        <span class="mcc-icon">📏</span>
+        <span class="mcc-title">Método de la Secante</span>
+        <span class="badge badge-red mcc-tag">Búsqueda de raíces</span>
+        <span class="mcc-arrow">▼</span>
+      </div>
+      <div class="mcc-body">
+        <div class="vs-row">
+          <div class="vs-col">
+            <h4>¿Qué resuelve?</h4>
+            <p style="color:var(--muted);">Raíces de ecuaciones, como Newton-Raphson pero aproximando la derivada con una secante entre dos puntos previos.</p>
+          </div>
+          <div class="vs-col">
+            <h4>Ventaja sobre Newton-Raphson</h4>
+            <p style="color:var(--muted);">No requiere calcular f'(x) explícitamente. Convergencia superlineal (≈1.618, número áureo).</p>
+          </div>
+          <div class="vs-col">
+            <h4>vs. Interpolación</h4>
+            <p style="color:var(--muted);">Mismo argumento: resuelve raíces, no reconstrucción. La interpolación no busca ceros, sino la función que pasa por todos los datos.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GAUSS -->
+    <div class="method-compare-card">
+      <div class="mcc-header" onclick="toggleMcc(this)">
+        <span class="mcc-icon">🔢</span>
+        <span class="mcc-title">Eliminación de Gauss</span>
+        <span class="badge badge-yellow mcc-tag">Sistemas lineales</span>
+        <span class="mcc-arrow">▼</span>
+      </div>
+      <div class="mcc-body">
+        <div class="vs-row">
+          <div class="vs-col">
+            <h4>¿Qué resuelve?</h4>
+            <p style="color:var(--muted);">Sistemas de ecuaciones lineales Ax = b, transformando la matriz en forma escalonada para luego hacer sustitución hacia atrás.</p>
+          </div>
+          <div class="vs-col">
+            <h4>Relación con interpolación</h4>
+            <p style="color:var(--muted);">El método de Vandermonde <strong>usa</strong> Gauss para resolver V·a = y. Son complementarios: Gauss es una herramienta, Vandermonde es el método de interpolación.</p>
+          </div>
+          <div class="vs-col">
+            <h4>¿Por qué no solo Gauss?</h4>
+            <p style="color:var(--muted);">Gauss resuelve el sistema, pero Newton y Lagrange evitan plantear el sistema completo, siendo más eficientes (O(n²) vs O(n³)).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- JACOBI & GAUSS-SEIDEL -->
+    <div class="method-compare-card">
+      <div class="mcc-header" onclick="toggleMcc(this)">
+        <span class="mcc-icon">🔄</span>
+        <span class="mcc-title">Jacobi y Gauss-Seidel</span>
+        <span class="badge badge-yellow mcc-tag">Métodos iterativos</span>
+        <span class="mcc-arrow">▼</span>
+      </div>
+      <div class="mcc-body">
+        <div class="vs-row">
+          <div class="vs-col">
+            <h4>¿Qué resuelven?</h4>
+            <p style="color:var(--muted);">Sistemas lineales grandes mediante iteración. Parten de una estimación inicial y refinan progresivamente la solución.</p>
+          </div>
+          <div class="vs-col">
+            <h4>Ventaja principal</h4>
+            <p style="color:var(--muted);">Para matrices grandes y dispersas, los métodos iterativos son más eficientes en memoria que Gauss directo. Gauss-Seidel converge más rápido que Jacobi.</p>
+          </div>
+          <div class="vs-col">
+            <h4>vs. Interpolación</h4>
+            <p style="color:var(--muted);">Misma distinción: solucionan sistemas lineales. La interpolación no busca solucionar un sistema (salvo Vandermonde), sino reconstruir una función continua.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAPA CONCEPTUAL -->
+  <div style="margin-top:2.5rem;">
+    <h3 style="margin-bottom:1.5rem;">🗺️ Mapa: ¿Qué problema tienes?</h3>
+    <div class="chart-wrap" style="padding:2rem;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:1.5rem;font-size:0.9rem;">
+        <div style="background:rgba(124,92,252,0.2);border:2px solid var(--primary);border-radius:12px;padding:12px 24px;font-weight:700;">¿Qué tipo de problema tienes?</div>
+        <div style="display:flex;gap:3rem;flex-wrap:wrap;justify-content:center;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0.75rem;">
+            <div style="background:rgba(255,107,107,0.15);border:1px solid var(--accent);border-radius:10px;padding:10px 20px;text-align:center;">Encontrar raíces<br><span style="font-size:0.75rem;color:var(--muted);">f(x) = 0</span></div>
+            <div style="color:var(--muted);font-size:0.75rem;">↓</div>
+            <div style="background:rgba(255,107,107,0.08);border:1px solid var(--border);border-radius:8px;padding:8px 16px;font-size:0.82rem;text-align:center;">Bisección<br>Newton-Raphson<br>Secante</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0.75rem;">
+            <div style="background:rgba(255,209,102,0.15);border:1px solid var(--gold);border-radius:10px;padding:10px 20px;text-align:center;">Resolver sistema lineal<br><span style="font-size:0.75rem;color:var(--muted);">Ax = b</span></div>
+            <div style="color:var(--muted);font-size:0.75rem;">↓</div>
+            <div style="background:rgba(255,209,102,0.08);border:1px solid var(--border);border-radius:8px;padding:8px 16px;font-size:0.82rem;text-align:center;">Gauss<br>Jacobi<br>Gauss-Seidel</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0.75rem;">
+            <div style="background:rgba(0,212,200,0.15);border:2px solid var(--secondary);border-radius:10px;padding:10px 20px;text-align:center;font-weight:700;">Reconstruir función<br><span style="font-size:0.75rem;color:var(--muted);">de datos discretos</span></div>
+            <div style="color:var(--muted);font-size:0.75rem;">↓</div>
+            <div style="background:rgba(0,212,200,0.1);border:2px solid var(--secondary);border-radius:8px;padding:8px 16px;font-size:0.82rem;text-align:center;font-weight:700;color:var(--secondary);">✓ Interpolación<br>Polinómica</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────── QUIZ ─────────────── -->
+<section id="quiz" class="fade-up">
+  <div class="section-tag">09 · Autoevaluación</div>
+  <h2 class="section-title">¿Cuánto aprendiste? 🎯</h2>
+  <p class="section-desc">Pon a prueba tu comprensión con estas preguntas de repaso.</p>
+
+  <div id="quiz-container">
+    <div class="quiz-card" id="q1">
+      <p class="quiz-q">1. ¿Cuántos polinomios de grado ≤ n existen que interpolen exactamente n+1 puntos distintos?</p>
+      <div class="quiz-opts">
+        <button class="quiz-opt" onclick="checkAnswer(this,'q1',false)">A) Infinitos</button>
+        <button class="quiz-opt" onclick="checkAnswer(this,'q1',true)">B) Exactamente uno</button>
+        <button class="quiz-opt" onclick="checkAnswer(this,'q1',false)">C) Depende de los puntos</button>
+        <button class="quiz-opt" onclick="checkAnswer(this,'q1',false)">D) Ninguno si n es par</button>
+      </div>
+      <div class="quiz-feedback" id="fb-q1">✅ Correcto. El Teorema de Existencia y Unicidad garantiza que existe <strong>exactamente un</strong> polinomio de grado ≤ n que pasa por n+1 puntos con abscisas distintas.</div>
+    </div>
+
+    <div class="quiz-card" id="q2">
+      <p class="quiz-q">2. ¿Qué ventaja tiene el método de Newton sobre Lagrange para datos que llegan progresivamente?</p>
+      <div class="quiz-opts">
+        <button class="quiz-opt" onclick="checkAnswer(this,'q2',false)">A) Produce un polinomio de menor grado</button>
+        <button class="quiz-opt" onclick="checkAnswer(this,'q2',true)">B) Es incremental: al agregar un punto, solo calcula un nuevo término</button>
+        <button class="quiz-opt" onclick="checkAnswer(this,'q2',false)">C) Usa menos nodos</button>
+        <button class="quiz-opt" onclick="checkAnswer(this,'q2',false)">D) Tiene complejidad O(n log n)</button>
+      </div>
+      <div class="quiz-feedback" id="fb-q2">✅ Correcto. Newton es <strong>incremental</strong>: solo agrega un término nuevo sin recalcular los anteriores. Lagrange debe recomputar todos los Lᵢ(x).</div>
+    </div>
+
+    <div class="quiz-card" id="q3">
+      <p class="quiz-q">3. El fenómeno de Runge ocurre cuando...</p>
+      <div class="quiz-opts">
+        <button class="quiz-opt" onclick="checkAnswer(this,'q3',false)">A) Se usan nodos de Chebyshev</button>
+        <button class="quiz-opt" onclick="checkAnswer(this,'q3',false)">B) El polinomio tiene coeficientes negativos</button>
+        <button class="quiz-opt" onclick="checkAnswer(this,'q3',true)">C) Se usan muchos nodos equiespaciados y el polinomio oscila en los extremos</button>
+        <button class="quiz-opt" onclick="checkAnswer(this,'q3',false)">D) La función interpolada no es continua</button>
+      </div>
+      <div class="quiz-feedback" id="fb-q3">✅ Correcto. Con nodos equiespaciados y grados elevados, el polinomio interpolante puede oscilar violentamente cerca de los extremos del intervalo, aunque pase exactamente por todos los puntos.</div>
+    </div>
+
+    <div class="quiz-card" id="q4">
+      <p class="quiz-q">4. Si quieres resolver el sistema Ax = b, ¿cuál método usas?</p>
+      <div class="quiz-opts">
+        <button class="quiz-opt" onclick="checkAnswer(this,'q4',false)">A) Interpolación de Lagrange</button>
+        <button class="quiz-opt" onclick="checkAnswer(this,'q4',false)">B) Método de Bisección</button>
+        <button class="quiz-opt" onclick="checkAnswer(this,'q4',true)">C) Eliminación de Gauss o Jacobi/Gauss-Seidel</button>
+        <button class="quiz-opt" onclick="checkAnswer(this,'q4',false)">D) Fenómeno de Runge</button>
+      </div>
+      <div class="quiz-feedback" id="fb-q4">✅ Correcto. Gauss (directo) y Jacobi/Gauss-Seidel (iterativos) son los métodos para <strong>sistemas lineales</strong>. La interpolación resuelve otro problema: reconstruir una función.</div>
+    </div>
+  </div>
+  <div id="quiz-score" style="text-align:center;margin-top:1.5rem;font-size:1.1rem;display:none;">
+    <span id="score-text"></span>
+  </div>
+</section>
+
+<!-- ─────────────── CONCLUSIONES ─────────────── -->
+<section id="conclusiones" class="fade-up">
+  <div class="section-tag">10 · Conclusiones</div>
+  <h2 class="section-title">Síntesis y Recomendaciones</h2>
+  <p class="section-desc">Qué llevarse de este estudio.</p>
+
+  <div class="card" style="margin-bottom:1.5rem;">
+    <div class="conclusion-item"><div class="conc-num">1</div><p class="conc-text">La interpolación polinómica garantiza la <strong>existencia y unicidad</strong> de un polinomio de grado ≤ n que pasa exactamente por n+1 puntos dados.</p></div>
+    <div class="conclusion-item"><div class="conc-num">2</div><p class="conc-text">Los métodos de Vandermonde, Lagrange y Newton producen el <strong>mismo polinomio</strong>, pero difieren significativamente en eficiencia computacional, estabilidad numérica y flexibilidad.</p></div>
+    <div class="conclusion-item"><div class="conc-num">3</div><p class="conc-text">El <strong>método de Newton</strong> es la alternativa más recomendable: naturaleza incremental, complejidad O(n²) y alta estabilidad numérica.</p></div>
+    <div class="conclusion-item"><div class="conc-num">4</div><p class="conc-text">El <strong>fenómeno de Runge</strong> demuestra que más nodos equiespaciados no siempre mejoran la aproximación: pueden provocar oscilaciones crecientes.</p></div>
+    <div class="conclusion-item"><div class="conc-num">5</div><p class="conc-text">En aplicaciones reales, los <strong>splines cúbicos</strong> suelen ser preferibles: ofrecen estabilidad sin sacrificar continuidad, independientemente del número de nodos.</p></div>
+    <div class="conclusion-item"><div class="conc-num">6</div><p class="conc-text">Cada familia de métodos numéricos resuelve un tipo diferente de problema: raíces, sistemas lineales o reconstrucción de funciones. El ingeniero debe identificar correctamente el problema antes de elegir el método.</p></div>
+  </div>
+
+  <h3 style="margin-bottom:1.5rem;">📖 Referencias Bibliográficas</h3>
+  <div class="card">
+    <div style="display:flex;flex-direction:column;gap:0.6rem;font-size:0.85rem;color:var(--muted);">
+      <div>Burden, R. L., & Faires, J. D. (2017). <em>Análisis numérico</em> (10ª ed.). Cengage Learning.</div>
+      <div>Chapra, S. C., & Canale, R. P. (2015). <em>Métodos numéricos para ingenieros</em> (7ª ed.). McGraw-Hill.</div>
+      <div>Kincaid, D., & Cheney, W. (2009). <em>Numerical analysis: Mathematics of scientific computing</em> (3rd ed.). AMS.</div>
+      <div>Press, W. H. et al. (2007). <em>Numerical recipes: The art of scientific computing</em> (3rd ed.). Cambridge UP.</div>
+      <div>Harris et al. (2020). Array programming with NumPy. <em>Nature</em>, 585, 357–362.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────── FOOTER ─────────────── -->
+<footer>
+  <p>Interpolación Polinómica · Análisis Numérico · <span>2026</span></p>
+  <p style="margin-top:0.4rem;">Facultad de Ingeniería · Programa de Ingeniería de Sistemas</p>
+</footer>
+
+<!-- ─────────────── SCRIPTS ─────────────── -->
+<script>
+// ══════════════════════════════════════════
+// PROGRESS BAR & SCROLL SPY
+// ══════════════════════════════════════════
+window.addEventListener('scroll', () => {
+  const total = document.documentElement.scrollHeight - innerHeight;
+  document.getElementById('progress').style.width = (scrollY / total * 100) + '%';
+
+  // Fade-up
+  document.querySelectorAll('.fade-up').forEach(el => {
+    if (el.getBoundingClientRect().top < innerHeight * 0.88) el.classList.add('visible');
+  });
+
+  // Scrollspy
+  const secs = document.querySelectorAll('section[id]');
+  let cur = '';
+  secs.forEach(s => { if (s.offsetTop - 80 <= scrollY) cur = s.id; });
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + cur);
+  });
+});
+
+// ══════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ══════════════════════════════════════════
+// COLLAPSIBLE METHOD COMPARISON
+// ══════════════════════════════════════════
+function toggleMcc(header) {
+  const body = header.nextElementSibling;
+  const arrow = header.querySelector('.mcc-arrow');
+  const open = body.classList.toggle('open');
+  arrow.style.transform = open ? 'rotate(180deg)' : '';
+}
+
+// ══════════════════════════════════════════
+// INTERPOLATION ALGORITHMS (JS)
+// ══════════════════════════════════════════
+function lagrange(xArr, yArr, x) {
+  const n = xArr.length;
+  let result = 0;
+  for (let i = 0; i < n; i++) {
+    let L = 1;
+    for (let j = 0; j < n; j++) {
+      if (i !== j) L *= (x - xArr[j]) / (xArr[i] - xArr[j]);
+    }
+    result += yArr[i] * L;
+  }
+  return result;
+}
+
+function newtonDivDiff(xArr, yArr) {
+  const n = xArr.length;
+  const coef = [...yArr.map(Number)];
+  for (let j = 1; j < n; j++) {
+    for (let i = n - 1; i >= j; i--) {
+      coef[i] = (coef[i] - coef[i-1]) / (xArr[i] - xArr[i-j]);
+    }
+  }
+  return coef;
+}
+
+function newtonEval(xArr, yArr, x) {
+  const coef = newtonDivDiff(xArr, yArr);
+  const n = xArr.length;
+  let result = coef[n-1];
+  for (let i = n-2; i >= 0; i--) result = result * (x - xArr[i]) + coef[i];
+  return result;
+}
+
+function interpolate(xArr, yArr, x, method) {
+  if (xArr.length < 2) return NaN;
+  if (method === 'lagrange') return lagrange(xArr, yArr, x);
+  return newtonEval(xArr, yArr, x);
+}
+
+// ══════════════════════════════════════════
+// PLAYGROUND
+// ══════════════════════════════════════════
+const canvas = document.getElementById('playground-canvas');
+const ctx = canvas.getContext('2d');
+let points = [];
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width || 800;
+  canvas.height = 360;
+}
+resizeCanvas();
+window.addEventListener('resize', () => { resizeCanvas(); redraw(); });
+
+// Convert canvas coords to math coords and vice versa
+const PAD = 40;
+function toMath(cx, cy) {
+  const xRange = [-3, 3], yRange = [-3, 3];
+  const x = xRange[0] + (cx - PAD) / (canvas.width - 2*PAD) * (xRange[1] - xRange[0]);
+  const y = yRange[1] - (cy - PAD) / (canvas.height - 2*PAD) * (yRange[1] - yRange[0]);
+  return [x, y];
+}
+function toCanvas(mx, my) {
+  const xRange = [-3, 3], yRange = [-3, 3];
+  const cx = PAD + (mx - xRange[0]) / (xRange[1] - xRange[0]) * (canvas.width - 2*PAD);
+  const cy = PAD + (yRange[1] - my) / (yRange[1] - yRange[0]) * (canvas.height - 2*PAD);
+  return [cx, cy];
+}
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const cx = (e.clientX - rect.left) * scaleX;
+  const cy = (e.clientY - rect.top) * scaleY;
+  const [mx, my] = toMath(cx, cy);
+  // Avoid duplicate x
+  if (!points.some(p => Math.abs(p[0] - mx) < 0.1)) {
+    points.push([mx, my]);
+    points.sort((a,b) => a[0] - b[0]);
+    redraw();
+  }
+});
+
+canvas.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const cx = (e.clientX - rect.left) * scaleX;
+  const cy = (e.clientY - rect.top) * scaleY;
+  const [mx, my] = toMath(cx, cy);
+  let minDist = Infinity, minIdx = -1;
+  points.forEach((p, i) => {
+    const d = Math.hypot(p[0]-mx, p[1]-my);
+    if (d < minDist) { minDist = d; minIdx = i; }
+  });
+  if (minIdx >= 0 && minDist < 0.4) {
+    points.splice(minIdx, 1);
+    redraw();
+  }
+});
+
+function clearPlayground() { points = []; redraw(); }
+
+function addPreset() {
+  points = [[-2, 1], [-1, -1], [0, 2], [1, 0], [2, 1.5]];
+  redraw();
+}
+
+function redraw() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = '#0a0e1e';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  for (let x = -3; x <= 3; x++) {
+    const [cx] = toCanvas(x, 0);
+    ctx.beginPath(); ctx.moveTo(cx, PAD); ctx.lineTo(cx, H-PAD); ctx.stroke();
+  }
+  for (let y = -3; y <= 3; y++) {
+    const [,cy] = toCanvas(0, y);
+    ctx.beginPath(); ctx.moveTo(PAD, cy); ctx.lineTo(W-PAD, cy); ctx.stroke();
+  }
+
+  // Axes
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 1.5;
+  const [ax0] = toCanvas(-3, 0); const [ax1] = toCanvas(3, 0);
+  const [,ay0] = toCanvas(0, -3); const [,ay1] = toCanvas(0, 3);
+  ctx.beginPath(); ctx.moveTo(ax0, toCanvas(0,0)[1]); ctx.lineTo(ax1, toCanvas(0,0)[1]); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(toCanvas(0,0)[0], ay0); ctx.lineTo(toCanvas(0,0)[0], ay1); ctx.stroke();
+
+  // Axis labels
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'center';
+  for (let x = -3; x <= 3; x++) {
+    if (x === 0) continue;
+    const [cx, cy] = toCanvas(x, 0);
+    ctx.fillText(x, cx, cy + 14);
+  }
+
+  document.getElementById('point-count').textContent = points.length + ' punto' + (points.length !== 1 ? 's' : '');
+
+  if (points.length >= 2) {
+    const xArr = points.map(p => p[0]);
+    const yArr = points.map(p => p[1]);
+    const method = document.getElementById('method-select').value;
+
+    // Draw curve
+    const steps = 500;
+    const xMin = -3, xMax = 3;
+    ctx.beginPath();
+    ctx.strokeStyle = '#7c5cfc';
+    ctx.lineWidth = 2.5;
+    let first = true;
+    for (let i = 0; i <= steps; i++) {
+      const mx = xMin + (xMax - xMin) * i / steps;
+      const my = interpolate(xArr, yArr, mx, method);
+      const [cx, cy] = toCanvas(mx, my);
+      if (!isFinite(my) || cy < 0 || cy > H) { first = true; continue; }
+      if (first) { ctx.moveTo(cx, cy); first = false; }
+      else ctx.lineTo(cx, cy);
+    }
+    ctx.stroke();
+    updateEquation(xArr, yArr, method);
+  } else {
+    document.getElementById('eq-display').textContent = 'Agrega al menos 2 puntos para ver el polinomio interpolante';
+  }
+
+  // Draw points
+  points.forEach(([mx, my]) => {
+    const [cx, cy] = toCanvas(mx, my);
+    ctx.beginPath();
+    ctx.arc(cx, cy, 7, 0, Math.PI*2);
+    ctx.fillStyle = '#00d4c8';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`(${mx.toFixed(1)},${my.toFixed(1)})`, cx, cy - 12);
+  });
+}
+
+function updateEquation(xArr, yArr, method) {
+  const n = xArr.length;
+  let txt = `Método: ${method === 'lagrange' ? 'Lagrange' : 'Newton'} | Grado: ${n-1} | Nodos: ${n}`;
+  if (method === 'newton') {
+    const coef = newtonDivDiff([...xArr], [...yArr]);
+    txt += `\nCoeficientes Newton: [${coef.map(c=>c.toFixed(3)).join(', ')}]`;
+  }
+  document.getElementById('eq-display').textContent = txt;
+}
+
+// Initial draw
+redraw();
+
+// ══════════════════════════════════════════
+// TEMPERATURE CASE STUDY
+// ══════════════════════════════════════════
+const tempX = [0, 4, 8, 12, 16, 20, 24];
+const tempY = [14.2, 12.5, 18.3, 24.7, 26.1, 20.4, 15.0];
+
+function updateTempEstimate() {
+  const h = parseFloat(document.getElementById('hour-slider').value);
+  const hh = Math.floor(h), mm = Math.round((h - hh) * 60);
+  document.getElementById('hour-val').textContent = String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0');
+  const t = lagrange(tempX, tempY, h);
+  document.getElementById('temp-result').textContent = t.toFixed(1) + '°C';
+  // Update chart annotation (just move a vertical line)
+  if (window.tempChart) {
+    window.tempChart.data.datasets[2].data = tempX.map(x => ({x, y: null}));
+    window.tempChart.options.plugins.annotation = undefined;
+    window.tempChart.update('none');
+  }
+}
+
+const tempCtx = document.getElementById('temp-chart').getContext('2d');
+// Generate interpolated curve
+const curveX = [], curveY = [];
+for (let i = 0; i <= 200; i++) {
+  const x = i * 24 / 200;
+  curveX.push(x);
+  curveY.push(lagrange(tempX, tempY, x));
+}
+
+window.tempChart = new Chart(tempCtx, {
+  type: 'line',
+  data: {
+    datasets: [
+      {
+        label: 'Polinomio interpolante (grado 6)',
+        data: curveX.map((x,i) => ({x, y: curveY[i]})),
+        borderColor: '#7c5cfc',
+        backgroundColor: 'rgba(124,92,252,0.1)',
+        borderWidth: 2.5,
+        pointRadius: 0,
+        fill: true,
+        tension: 0,
+        parsing: false,
+      },
+      {
+        label: 'Datos del sensor',
+        data: tempX.map((x,i) => ({x, y: tempY[i]})),
+        borderColor: '#00d4c8',
+        backgroundColor: '#00d4c8',
+        pointRadius: 7,
+        pointHoverRadius: 9,
+        showLine: false,
+        parsing: false,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    interaction: { mode: 'index', intersect: false },
+    scales: {
+      x: {
+        type: 'linear',
+        title: { display: true, text: 'Hora del día', color: '#8892b0' },
+        min: 0, max: 24,
+        ticks: { color: '#8892b0', callback: v => v + ':00' },
+        grid: { color: 'rgba(255,255,255,0.05)' }
+      },
+      y: {
+        title: { display: true, text: 'Temperatura (°C)', color: '#8892b0' },
+        ticks: { color: '#8892b0' },
+        grid: { color: 'rgba(255,255,255,0.05)' }
+      }
+    },
+    plugins: {
+      legend: { labels: { color: '#e2e8f0', boxWidth: 16 } },
+      tooltip: {
+        backgroundColor: '#151d35',
+        borderColor: '#1e2d4f',
+        borderWidth: 1,
+        titleColor: '#e2e8f0',
+        bodyColor: '#8892b0',
+        callbacks: {
+          title: items => items[0].parsed.x.toFixed(1) + ':00 hs',
+          label: item => item.dataset.label + ': ' + item.parsed.y.toFixed(2) + '°C'
+        }
+      }
+    }
+  }
+});
+
+// ══════════════════════════════════════════
+// RUNGE PHENOMENON
+// ══════════════════════════════════════════
+function rungeF(x) { return 1 / (1 + 25 * x * x); }
+
+const rungeCtx = document.getElementById('runge-chart').getContext('2d');
+const trueX = [], trueY = [];
+for (let i = 0; i <= 300; i++) {
+  const x = -1 + 2 * i / 300;
+  trueX.push(x); trueY.push(rungeF(x));
+}
+
+window.rungeChart = new Chart(rungeCtx, {
+  type: 'line',
+  data: {
+    datasets: [
+      {
+        label: 'f(x) = 1/(1+25x²)',
+        data: trueX.map((x,i) => ({x, y: trueY[i]})),
+        borderColor: '#00d4c8',
+        borderWidth: 2.5,
+        pointRadius: 0,
+        parsing: false,
+        tension: 0,
+      },
+      {
+        label: 'Polinomio interpolante',
+        data: [],
+        borderColor: '#ff6b6b',
+        borderWidth: 2,
+        pointRadius: 0,
+        parsing: false,
+        tension: 0,
+      },
+      {
+        label: 'Nodos',
+        data: [],
+        borderColor: '#ffd166',
+        backgroundColor: '#ffd166',
+        pointRadius: 5,
+        showLine: false,
+        parsing: false,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      x: {
+        type: 'linear',
+        min: -1.1, max: 1.1,
+        ticks: { color: '#8892b0' },
+        grid: { color: 'rgba(255,255,255,0.05)' }
+      },
+      y: {
+        min: -0.8, max: 1.4,
+        ticks: { color: '#8892b0' },
+        grid: { color: 'rgba(255,255,255,0.05)' }
+      }
+    },
+    plugins: {
+      legend: { labels: { color: '#e2e8f0', boxWidth: 16 } }
+    },
+    animation: { duration: 300 }
+  }
+});
+
+function updateRungeChart() {
+  const n = parseInt(document.getElementById('runge-slider').value);
+  document.getElementById('runge-nodes-val').textContent = n;
+
+  const nodeX = [], nodeY = [];
+  for (let i = 0; i < n; i++) {
+    const x = -1 + 2 * i / (n - 1);
+    nodeX.push(x); nodeY.push(rungeF(x));
+  }
+
+  const interpX = [], interpY = [];
+  const steps = 400;
+  for (let i = 0; i <= steps; i++) {
+    const x = -1 + 2 * i / steps;
+    const y = lagrange(nodeX, nodeY, x);
+    interpX.push(x); interpY.push(y);
+  }
+
+  window.rungeChart.data.datasets[1].data = interpX.map((x,i) => ({x, y: interpY[i]}));
+  window.rungeChart.data.datasets[2].data = nodeX.map((x,i) => ({x, y: nodeY[i]}));
+
+  const maxErr = Math.max(...interpX.map((x,i) => Math.abs(interpY[i] - rungeF(x))));
+  const status = document.getElementById('runge-status');
+  if (n >= 12) {
+    status.textContent = `⚠️ Oscilaciones detectadas! Error máx: ${maxErr.toFixed(3)}`;
+    status.style.color = '#ff6b6b';
+  } else {
+    status.textContent = `✓ Aproximación razonable. Error máx: ${maxErr.toFixed(3)}`;
+    status.style.color = '#06d6a0';
+  }
+
+  window.rungeChart.update();
+}
+updateRungeChart();
+
+// ══════════════════════════════════════════
+// COMPARISON CHART
+// ══════════════════════════════════════════
+const compareCtx = document.getElementById('compare-chart').getContext('2d');
+new Chart(compareCtx, {
+  type: 'bar',
+  data: {
+    labels: ['n=5', 'n=10', 'n=20', 'n=50', 'n=100'],
+    datasets: [
+      {
+        label: 'Vandermonde (O(n³))',
+        data: [125, 1000, 8000, 125000, 1000000].map(v => Math.log10(v)),
+        backgroundColor: 'rgba(255,107,107,0.7)',
+        borderColor: '#ff6b6b',
+        borderWidth: 1,
+      },
+      {
+        label: 'Lagrange (O(n²))',
+        data: [25, 100, 400, 2500, 10000].map(v => Math.log10(v)),
+        backgroundColor: 'rgba(255,209,102,0.7)',
+        borderColor: '#ffd166',
+        borderWidth: 1,
+      },
+      {
+        label: 'Newton (O(n²))',
+        data: [25, 100, 400, 2500, 10000].map(v => Math.log10(v)),
+        backgroundColor: 'rgba(6,214,160,0.7)',
+        borderColor: '#06d6a0',
+        borderWidth: 1,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      x: { ticks: { color: '#8892b0' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      y: {
+        ticks: { color: '#8892b0', callback: v => '10^' + v },
+        grid: { color: 'rgba(255,255,255,0.05)' },
+        title: { display: true, text: 'Operaciones (escala log₁₀)', color: '#8892b0' }
+      }
+    },
+    plugins: {
+      legend: { labels: { color: '#e2e8f0', boxWidth: 12 } },
+      tooltip: {
+        backgroundColor: '#151d35', borderColor: '#1e2d4f', borderWidth: 1,
+        titleColor: '#e2e8f0', bodyColor: '#8892b0',
+        callbacks: { label: item => item.dataset.label + ': ~10^' + item.parsed.y.toFixed(1) + ' ops' }
+      }
+    }
+  }
+});
+
+// ══════════════════════════════════════════
+// RADAR CHART
+// ══════════════════════════════════════════
+const radarCtx = document.getElementById('radar-chart').getContext('2d');
+new Chart(radarCtx, {
+  type: 'radar',
+  data: {
+    labels: ['Estabilidad', 'Eficiencia', 'Incremental', 'Claridad teórica', 'Facilidad impl.'],
+    datasets: [
+      {
+        label: 'Vandermonde',
+        data: [2, 1, 1, 4, 4],
+        borderColor: '#ff6b6b',
+        backgroundColor: 'rgba(255,107,107,0.15)',
+        pointBackgroundColor: '#ff6b6b',
+      },
+      {
+        label: 'Lagrange',
+        data: [3, 3, 1, 5, 3],
+        borderColor: '#ffd166',
+        backgroundColor: 'rgba(255,209,102,0.15)',
+        pointBackgroundColor: '#ffd166',
+      },
+      {
+        label: 'Newton',
+        data: [5, 4, 5, 3, 3],
+        borderColor: '#06d6a0',
+        backgroundColor: 'rgba(6,214,160,0.15)',
+        pointBackgroundColor: '#06d6a0',
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      r: {
+        min: 0, max: 5,
+        ticks: { color: '#8892b0', stepSize: 1 },
+        grid: { color: 'rgba(255,255,255,0.1)' },
+        angleLines: { color: 'rgba(255,255,255,0.1)' },
+        pointLabels: { color: '#e2e8f0', font: { size: 12 } }
+      }
+    },
+    plugins: {
+      legend: { labels: { color: '#e2e8f0', boxWidth: 16 } }
+    }
+  }
+});
+
+// ══════════════════════════════════════════
+// QUIZ
+// ══════════════════════════════════════════
+let quizAnswers = {};
+let quizTotal = 4;
+
+function checkAnswer(btn, qId, isCorrect) {
+  const opts = btn.parentElement.querySelectorAll('.quiz-opt');
+  opts.forEach(o => o.disabled = true);
+  btn.classList.add(isCorrect ? 'correct' : 'wrong');
+  if (!isCorrect) {
+    opts.forEach(o => { if (o.onclick.toString().includes('true')) o.classList.add('correct'); });
+  }
+  document.getElementById('fb-' + qId).style.display = 'block';
+  quizAnswers[qId] = isCorrect;
+  if (Object.keys(quizAnswers).length === quizTotal) {
+    const score = Object.values(quizAnswers).filter(Boolean).length;
+    const sc = document.getElementById('quiz-score');
+    const msgs = ['Sigue repasando el material 📖', 'Vas bien, casi! 💪', 'Muy bien! 🎉', 'Excelente! 🏆', '¡Perfecto! 🌟'];
+    document.getElementById('score-text').innerHTML =
+      `Tu puntaje: <span style="color:var(--secondary);font-weight:900;">${score}/${quizTotal}</span> — ${msgs[score]}`;
+    sc.style.display = 'block';
+  }
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+// Initial scroll check
+document.querySelectorAll('.fade-up').forEach(el => {
+  if (el.getBoundingClientRect().top < innerHeight * 0.88) el.classList.add('visible');
+});
+
+// Initialize temp estimate
+updateTempEstimate();
+</script>
+</body>
+</html>
